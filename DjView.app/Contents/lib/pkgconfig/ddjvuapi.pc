@@ -1,0 +1,13 @@
+prefix=/usr/local/Cellar/djvulibre/HEAD
+exec_prefix=/usr/local/Cellar/djvulibre/HEAD
+libdir = /usr/local/Cellar/djvulibre/HEAD/lib
+includedir = /usr/local/Cellar/djvulibre/HEAD/include
+
+Name: ddjvuapi
+Description: DjVu Decoding API
+Version: 3.5.27
+Requires:
+Conflicts:
+Libs: -L/usr/local/Cellar/djvulibre/HEAD/lib -ldjvulibre
+Libs.private: -ljpeg  -lm 
+Cflags: -I/usr/local/Cellar/djvulibre/HEAD/include  
