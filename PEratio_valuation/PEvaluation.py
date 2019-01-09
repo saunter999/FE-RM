@@ -73,59 +73,65 @@ def PEratio(P,E,rp,re,ma,title):
         ratio=ratio.rename('MA='+str(shift))
         ratio.plot(legend=True)
 	   
-def computeYd(Price,prd):
-      Pny=Price.iloc[prd:]
+def computeYd(Price,prd,fut):
+      Pny=Price.iloc[prd*abs(fut):]
       yd=pd.Series()
       averyd=pd.Series()
       for idx,item in enumerate(Pny):
-          yd[Pny.index[idx]]=(Pny.iloc[idx]/Price.iloc[idx]-1.0)
-      for idx,item in enumerate(yd):
-          if idx+1>prd:
+          yd[Pny.index[idx]]=Pny.iloc[idx]/Price.iloc[idx]-1.0
+#      for idx,item in enumerate(yd):
+ #         if idx+1>prd:
           #if (idx+1)%12==0:
-             averyd[yd.index[idx]]=mean(yd.iloc[idx-prd+1:idx+1])
-      averyd=averyd.rename("yearly yd")
-      return averyd
+  #           averyd[yd.index[idx]]=mean(yd.iloc[idx-prd+1:idx+1])
+  #    averyd=averyd.rename("yearly yd")
+   #   return averyd
+      return yd
 
 def EPratio(rp,re,ma,title,fut=-7):
     plt.figure(4)
     plt.title(title)
-    CPI_now=210.036
+    CPI_now=253.22
     prd=12  
-    for shift in ma:
-      if shift==0:
-        ##evaluating real yield rate
-        df=pd.read_excel("data.xlsx",index_col='Date',sheet_name=1) 
-        df=convertdate(df)
-        P=df['S&P_Price']
-        E=df['Earnings']
-        realPrice= ( P/df['CPI']*CPI_now ).rename('realPrice')
-        yd=computeYd(realPrice,prd)
-        yd.plot(c='y',legend=True,secondary_y=True)
 
-      else:
-        st=shift*12-1
-        ratio=pd.Series()
-        for idx,item in enumerate(rp): 
-            if idx>st:
-            #if idx%prd==0 and idx>st:
-              # print(idx,rp.index[idx])
-              ratio[rp.index[idx]]=( rp.iloc[idx]/gmean(re.iloc[idx-st:idx]) )**-1
-        print("mean of E/P for ma="+str(shift)+':',mean(ratio))	
-        ratio=ratio.rename('MA='+str(shift))
-        ratio.plot(legend=True)
-	
+    ##evaluating smoothed EP ratio
+    shift=ma
+    st=shift*prd-1
+    ratio=pd.Series()
+    for idx,item in enumerate(rp): 
+      if idx>st:
+         ratio[rp.index[idx]]=( rp.iloc[idx]/gmean(re.iloc[idx-st:idx]) )**-1
+    print("mean of E/P for ma="+str(shift)+':',mean(ratio))	
+    ratio=ratio.rename('MA='+str(shift))
+    ratio.plot(legend=True)
+
+    ##evaluating real yield rate
+    df=pd.read_excel("data.xlsx",index_col='Date',sheet_name=1) 
+    df=convertdate(df)
+    P=df['S&P_Price']
+    E=df['Earnings']
+    realPrice= ( P/df['CPI']*CPI_now ).rename('realPrice')
     ##studying correlation between yd and EP_ratio
-    futls=range(-12,1)
+    futls=range(-12,-3)
     cor=[]
     for fut in futls:
-        ydshift=yd.shift(fut*prd)
-        cor.append( corr(ydshift,ratio) )
-    print("corr_coef:",cor)
+            yd=computeYd(realPrice,prd,fut)
+#            yd*=10 ##scales used in the book
+            ydshift=yd.shift(fut*prd)
+            corv=corr(ydshift,ratio)
+            cor.append( corv )
+            print("corr_coef:",corv,'with fut=',str(fut))
+    yd=yd.rename("unshifted yearly yd")
+#    yd.plot(c='y',legend=True,secondary_y=True)
     cor=array(cor)
     fut=futls[cor.argmax()]
     ydshift=(yd.shift(fut*prd)).rename("shifted yearly yd with shift="+str(fut))
-    (ydshift).plot(legend=True,c='k',secondary_y=True)
-	   
+    (ydshift).plot(legend=True,secondary_y=True)
+    fut=-7
+    ydshift=(yd.shift(fut*prd)).rename("shifted yearly yd with shift="+str(fut))
+    (ydshift).plot(legend=True,secondary_y=True)
+    plt.axhline(y=0,c='k',ls='--')
+
+	
 def corr(x,y):
     merged=pd.concat([x,y],axis=1).dropna()
     x=merged.iloc[:,0]
@@ -137,5 +143,5 @@ if __name__=="__main__":
       df,rp,re=preview()
 #      obtainMonthly_price()
       PEratio(df['S&P_Price'],df['Earnings'],rp,re,ma=[0,10],title='P/E')
-      EPratio(rp,re,ma=[0,10],title='E/P')
+      EPratio(rp,re,ma=10,title='E/P')
       plt.show()
