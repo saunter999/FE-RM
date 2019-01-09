@@ -5,6 +5,7 @@ import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from scipy.stats.mstats import gmean
+import numpy as np
 
 def convertdate(df):
     cvtdate=[]
@@ -50,10 +51,10 @@ def PEratio(P,E,rp,re,ma,title):
       if shift==0:
          ratio=pd.Series()
          for idx,item in enumerate(P):
-            if idx%prd==0 and idx!=0:
+            #if idx%prd==0 and idx!=0:
+            if idx+1>prd:
                 #print(idx,P.index[idx])
                 ratio[P.index[idx]]=P.iloc[idx]/E.iloc[idx-1]
-        # print(ratio)
          print("mean of P/E for ma="+str(shift)+':',mean(ratio))	
          plt.axhline(y=mean(ratio),c='b')
          ratio=ratio.rename('MA='+str(shift))
@@ -63,7 +64,8 @@ def PEratio(P,E,rp,re,ma,title):
         st=shift*12-1
         ratio=pd.Series()
         for idx,item in enumerate(rp): 
-            if idx%prd==0 and idx>st:
+            #if idx%prd==0 and idx>st:
+            if idx>st:
               # print(idx,rp.index[idx])
               ratio[rp.index[idx]]=rp.iloc[idx]/gmean(re.iloc[idx-st:idx])
         print("mean of P/E for ma="+str(shift)+':',mean(ratio))	
@@ -73,15 +75,14 @@ def PEratio(P,E,rp,re,ma,title):
 	   
 def computeYd(Price,prd):
       Pny=Price.iloc[prd:]
-      ##Method1:average yield rate over prd=12 months
       yd=pd.Series()
       averyd=pd.Series()
       for idx,item in enumerate(Pny):
           yd[Pny.index[idx]]=(Pny.iloc[idx]/Price.iloc[idx]-1.0)
       for idx,item in enumerate(yd):
-          if (idx+1)%12==0:
+          if idx+1>prd:
+          #if (idx+1)%12==0:
              averyd[yd.index[idx]]=mean(yd.iloc[idx-prd+1:idx+1])
-      yd=yd.rename('Monthly yd')
       averyd=averyd.rename("yearly yd")
       return averyd
 
@@ -99,21 +100,37 @@ def EPratio(rp,re,ma,title,fut=-7):
         E=df['Earnings']
         realPrice= ( P/df['CPI']*CPI_now ).rename('realPrice')
         yd=computeYd(realPrice,prd)
-        ydshift=(yd.shift(fut)).rename("shifted yd with shift="+str(fut))
-        yd.plot(c='y',marker='*',legend=True,secondary_y=True)
-        (ydshift).plot(marker='o',legend=True,c='k',secondary_y=True)
+        yd.plot(c='y',legend=True,secondary_y=True)
 
       else:
         st=shift*12-1
         ratio=pd.Series()
         for idx,item in enumerate(rp): 
-            if idx%prd==0 and idx>st:
+            if idx>st:
+            #if idx%prd==0 and idx>st:
               # print(idx,rp.index[idx])
               ratio[rp.index[idx]]=( rp.iloc[idx]/gmean(re.iloc[idx-st:idx]) )**-1
         print("mean of E/P for ma="+str(shift)+':',mean(ratio))	
         ratio=ratio.rename('MA='+str(shift))
         ratio.plot(legend=True)
+	
+    ##studying correlation between yd and EP_ratio
+    futls=range(-12,1)
+    cor=[]
+    for fut in futls:
+        ydshift=yd.shift(fut*prd)
+        cor.append( corr(ydshift,ratio) )
+    print("corr_coef:",cor)
+    cor=array(cor)
+    fut=futls[cor.argmax()]
+    ydshift=(yd.shift(fut*prd)).rename("shifted yearly yd with shift="+str(fut))
+    (ydshift).plot(legend=True,c='k',secondary_y=True)
 	   
+def corr(x,y):
+    merged=pd.concat([x,y],axis=1).dropna()
+    x=merged.iloc[:,0]
+    y=merged.iloc[:,1]
+    return np.corrcoef(x,y)[0,1]
 	   
 
 if __name__=="__main__":

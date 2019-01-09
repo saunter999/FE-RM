@@ -14,7 +14,8 @@ def computeYd(Price):
       for idx,item in enumerate(Pny):
           yd[Pny.index[idx]]=(Pny.iloc[idx]/Price.iloc[idx]-1.0)
       for idx,item in enumerate(yd):
-          if (idx+1)%12==0:
+          #if (idx+1)%12==0:
+          if idx+1>12:
 #             print (yd.index[idx],yd.iloc[idx-11:idx+1],mean(yd.iloc[idx-11:idx+1]))
              averyd[yd.index[idx]]=mean(yd.iloc[idx-11:idx+1])
 #      print(averyd)
@@ -24,20 +25,6 @@ def computeYd(Price):
       yd.plot(legend=True)
       averyd.plot(legend=True)
 
-      ##Method2:averge over price over 12 months in one year and then calcuate the yield rate
-      meanP=pd.Series()
-      averyd1=pd.Series()
-      for idx,item in enumerate(Price):
-          if (idx+1)%12==0:
-#             print (Price.index[idx],Price.iloc[idx-11:idx+1],mean(Price.iloc[idx-11:idx+1]))
-             meanP[Price.index[idx]]=mean(Price.iloc[idx-11:idx+1])
-      for i in range(1,len(meanP)):
-          averyd1[meanP.index[i]]=meanP.iloc[i]/meanP.iloc[i-1]-1.0
-#      print(averyd1)
-#      print(averyd1.max(),averyd1.min())
-      averyd1=averyd1.rename("aver1_yearly yd")
-      averyd1.plot(legend=True,ls='--')
-      print(averyd1-averyd)
 
 
 
